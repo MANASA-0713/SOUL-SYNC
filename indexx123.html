@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SYNC SOUL — Deep Connection Protocol</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+/* --- THEME & CORE --- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  height: 100vh; width: 100vw; font-family: "Courier New", monospace;
+  background: #050008; color: #ff99e6; display: flex;
+  align-items: center; justify-content: center; overflow: hidden;
+}
+
+/* --- SPACE BACKGROUND --- */
+.star-field { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.dot { position: absolute; background: #ff7ad9; border-radius: 50%; opacity: 0.2; }
+
+/* --- INTRO ANIMATION --- */
+#intro {
+    position: fixed; width: 100%; height: 100%;
+    background: linear-gradient(to top, #1a0029, #050008);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 9999; transition: opacity 1s ease;
+}
+.scene { position: relative; width: 100%; max-width: 600px; height: 300px; }
+.person { position: absolute; bottom: 20px; transition: 2.5s ease-in-out; animation: bounce 0.6s infinite alternate; }
+@keyframes bounce { from { transform: translateY(0px); } to { transform: translateY(-8px); } }
+.left-p { left: 10%; } .right-p { right: 10%; }
+.move-left { left: 42%; } .move-right { right: 42%; }
+.body-p { width: 45px; height: 80px; background: #ff7ad9; border-radius: 20px; margin: auto; box-shadow: 0 0 15px rgba(255,122,217,0.5); }
+.head { width: 50px; height: 50px; background: #ffe0bd; border-radius: 50%; position: relative; margin: auto; }
+.eye { width: 6px; height: 6px; background: black; border-radius: 50%; position: absolute; top: 18px; }
+.left-eye { left: 12px; } .right-eye { right: 12px; }
+.heart-intro { position: absolute; left: 50%; top: 20%; transform: translateX(-50%) scale(0); font-size: 60px; color: #ff2d6f; opacity: 0; transition: 0.8s ease; }
+.show-heart { transform: translateX(-50%) scale(1.2); opacity: 1; text-shadow: 0 0 20px #ff2d6f; }
+
+/* --- UI COMPONENTS --- */
+.container { width: 95%; max-width: 900px; height: 92vh; display: none; flex-direction: column; z-index: 10; padding: 10px; }
+h1 { text-align: center; margin-bottom: 10px; font-size: 2.2rem; color: #ff7ad9; text-shadow: 0 0 20px rgba(255,122,217,0.8); letter-spacing: 12px; font-weight: 900; }
+
+.card {
+  background: rgba(15, 5, 25, 0.95); border: 2px solid #ff7ad9; border-radius: 40px;
+  position: relative; padding: 35px; flex-grow: 1; display: flex; flex-direction: column;
+  justify-content: space-between; box-shadow: 0 0 60px rgba(255, 122, 217, 0.25);
+  backdrop-filter: blur(15px); overflow: hidden;
+}
+
+/* --- NAV & METADATA --- */
+.gauge-container { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: rgba(255, 122, 217, 0.1); }
+#progressFill { height: 100%; width: 0%; background: #ff7ad9; box-shadow: 0 0 20px #ff7ad9; transition: width 0.8s ease; border-radius: 40px 40px 0 0; }
+#metaInfo { position: absolute; top: 15px; left: 35px; font-size: 0.75rem; color: #ff7ad9; opacity: 0.8; letter-spacing: 1px; }
+#compGauge { position: absolute; top: 15px; right: 35px; font-size: 0.8rem; font-weight: bold; color: #ff7ad9; text-shadow: 0 0 10px #ff7ad9; }
+
+/* --- FORM ELEMENTS --- */
+textarea, .btn-pill, input[type="text"] { 
+  width: 100%; border-radius: 50px; border: 2px solid #ff7ad9; 
+  background: rgba(0,0,0,0.5); color: #fff; font-family: inherit; 
+  font-size: 1rem; text-align: center; outline: none; padding: 14px;
+}
+textarea { height: 80px; border-radius: 20px; resize: none; border-color: rgba(255,122,217,0.4); }
+
+.btn-pill { cursor: pointer; font-weight: bold; color: #ff7ad9; text-transform: uppercase; transition: all 0.2s; letter-spacing: 2px; }
+.btn-pill:hover:not(:disabled) { background: #ff7ad9; color: #1a001f; box-shadow: 0 0 25px #ff7ad9; }
+.btn-clicked { background: #ff7ad9 !important; color: #1a001f !important; box-shadow: 0 0 30px #ff7ad9 !important; }
+
+.question { text-align: center; font-size: 1.3rem; color: #ffd1f0; line-height: 1.4; padding: 0 10px; }
+.status { text-align: center; font-size: 0.75rem; color: #ff7ad9; min-height: 1rem; }
+
+.revealGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 5px 0; }
+.answerBox { background: rgba(255,122,217,0.05); border: 1px solid rgba(255,122,217,0.2); border-radius: 20px; padding: 10px; font-size: 0.9rem; text-align: center; }
+
+.mutual-controls { display: flex; justify-content: flex-end; width: 100%; margin-top: 5px; }
+.btn-small { padding: 6px 12px; font-size: 0.6rem; width: auto; border-color: rgba(255,122,217,0.3); opacity: 0.5; }
+.btn-small.active { opacity: 1; border-color: #ff7ad9; background: #ff7ad9; color: #1a001f; }
+
+/* --- RATING --- */
+input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; margin: 10px 0; }
+input[type=range]::-webkit-slider-runnable-track { background: rgba(255,122,217,0.2); height: 8px; border-radius: 10px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; background: #ff7ad9; border-radius: 50%; margin-top: -8px; box-shadow: 0 0 10px #ff7ad9; }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get, remove, update } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCdRj_aM3OmmeuIvzuyAzMU-UuLOlCMmV4",
+  authDomain:"web-a8d3b.firebaseapp.com",
+  databaseURL:"https://web-a8d3b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"web-a8d3b",
+  storageBucket:"web-a8d3b.firebasestorage.app",
+  messagingSenderId:"176484629031",
+  appId:"1:176484629031:web:4c6227880e07a4d3496c02"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+/* --- SOUND ENGINE --- */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, type, dur, vol = 0.1) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.setTargetAtTime(0, audioCtx.currentTime, dur / 4);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + dur);
+}
+const sounds = {
+  click: () => playTone(880, 'sine', 0.1, 0.08),
+  commit: () => playTone(220, 'square', 0.15, 0.05),
+  reveal: () => { playTone(523, 'sine', 0.1, 0.08); setTimeout(() => playTone(659, 'sine', 0.1, 0.08), 60); },
+  score: () => { const notes = [523, 659, 783, 1046]; notes.forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.4, 0.07), i * 120)); }
+};
+
+/* --- STATE --- */
+let userId = localStorage.getItem('ss_user_id') || Math.random().toString(36).substring(2,8);
+localStorage.setItem('ss_user_id', userId);
+let sessionKey = "", myName = "", partnerName = "";
+let currentIndex = 0, questionSet = [], myAnswer = "", totalSyncPoints = 0, answered = 0;
+let hasRevealed = false, hasAdvanced = false, gameLimit = 10;
+
+const LEVELS = {
+  1:["If you were arrested with no explanation, what would your friends assume you did?","What is the most 'illegal' feeling thing that is actually legal?","If animals could talk, which one would be the rudest?"],
+  2:["Stress: Logical solution or just someone to sit in the mess with you?","Does 'being on time' mean 10 mins early or 5 mins late?","Life of the party or quiet corner conversation?"],
+  3:["Is vulnerability a sign of strength or a weakness to you?","Do you believe that people can truly change?","Is it better to be a kind liar or brutally honest?"],
+  4:["What is the most effective way for me to apologize?","Upset: Need a solution or just a hug?","Do you feel safe sharing your 'messy' emotions with me?"],
+  5:["What part of yourself do you struggle to love most?", "When misinterpreted, what reminds you I see the real you?", "What do you need to hear most when doubting yourself?"],
+  6:["What is one dream we will have achieved together ten years from now?", "How will we make sure we never stop 'dating' each other?", "How do you define success for us as a couple?"]
+};
+
+window.onload = () => {
+  const p1 = document.getElementById("p1"); const p2 = document.getElementById("p2"); const hIntro = document.getElementById("heartIntro");
+  setTimeout(() => { p1.classList.add("move-left"); p2.classList.add("move-right"); }, 500);
+  setTimeout(() => { hIntro.classList.add("show-heart"); playTone(523, 'sine', 0.6, 0.1); }, 3000);
+  setTimeout(() => { document.getElementById("intro").style.opacity = "0"; setTimeout(() => { document.getElementById("intro").style.display = "none"; document.querySelector(".container").style.display = "flex"; }, 1000); }, 4500);
+};
+
+window.generateKey = () => { sounds.click(); sessionKey = "SOUL-" + Math.floor(1000 + Math.random()*9000); document.getElementById("generatedKey").innerText = "CODE: " + sessionKey; };
+
+window.joinSession = () => {
+  sounds.click(); const input = document.getElementById("enterKey").value.trim().toUpperCase(); const name = document.getElementById("nameInput").value.trim();
+  if(!input || !name) return;
+  sessionKey = input; myName = name;
+  set(ref(database, `sessions/${sessionKey}/names/${userId}`), name);
+  document.getElementById("btnConnect").innerText = "WAITING...";
+  document.getElementById("btnConnect").disabled = true;
+
+  onValue(ref(database, `sessions/${sessionKey}/names`), snap => { 
+    const n = snap.val(); 
+    if(n && Object.keys(n).length === 2) { 
+      document.getElementById("handshakeSection").style.display = "none"; 
+      document.getElementById("gameSection").style.display = "flex"; 
+      startGame(); 
+    } 
+  });
+};
+
+function buildQuestionSet(limit) {
+  let pool = [];
+  for(let i=0; i<limit; i++) { let l = (i % 6) + 1; pool.push({level:l, q: LEVELS[l][Math.floor(Math.random()*3)]}); }
+  return pool.sort(() => Math.random()-0.5);
+}
+
+function startGame() {
+  get(ref(database, `sessions/${sessionKey}/questionSet`)).then(s => {
+    if(!s.exists()) { set(ref(database, `sessions/${sessionKey}/questionSet`), buildQuestionSet(50)); set(ref(database, `sessions/${sessionKey}/progress`), 0); set(ref(database, `sessions/${sessionKey}/limit`), 10); }
+  });
+  
+  onValue(ref(database, `sessions/${sessionKey}/names`), snap => { const n = snap.val(); if(n) { const ids = Object.keys(n); if(ids.length === 2) partnerName = n[ids.find(id => id !== userId)]; } });
+  onValue(ref(database, `sessions/${sessionKey}/questionSet`), snap => { if(snap.val()) questionSet = snap.val(); });
+  onValue(ref(database, `sessions/${sessionKey}/limit`), snap => { if(snap.val()) gameLimit = snap.val(); });
+  
+  onValue(ref(database, `sessions/${sessionKey}/progress`), snap => {
+    const i = snap.val(); if(i === null) return; 
+    currentIndex = i;
+    if(currentIndex >= gameLimit) handleGameEndOptions(); else loadQuestion();
+  });
+
+  onValue(ref(database, `sessions/${sessionKey}/ghost`), snap => { const data = snap.val(); const other = data ? Object.keys(data).find(id => id !== userId) : null; document.getElementById("ghostStatus").innerText = (other && data[other] > 0) ? "Partner thinking: " + "*".repeat(Math.min(data[other], 10)) : ""; });
+  
+  // BUFFERED ANSWERS LISTENER
+  onValue(ref(database, `sessions/${sessionKey}/answers/${currentIndex}`), snap => {
+    const a = snap.val();
+    if(a && Object.keys(a).length === 2 && !hasRevealed) { hasRevealed = true; revealAnswers(a); }
+  });
+
+  onValue(ref(database, `sessions/${sessionKey}/stopRequest`), snap => { const r = snap.val(); if(r && Object.keys(r).length === 2) finishGame(); });
+  onValue(ref(database, `sessions/${sessionKey}/extendRequest`), snap => { const r = snap.val(); if(r && Object.keys(r).length === 2) extendGame(); });
+}
+
+function loadQuestion() {
+  hasRevealed = false; hasAdvanced = false;
+  document.getElementById("progressFill").style.width = ((currentIndex/gameLimit)*100) + "%";
+  document.getElementById("metaInfo").innerText = `Q${currentIndex+1} OF ${gameLimit}`;
+  document.getElementById("question").innerText = questionSet[currentIndex].q;
+  document.getElementById("answerInput").value = ""; 
+  document.getElementById("answerInput").style.display = "block";
+  document.getElementById("answerInput").disabled = false;
+  document.getElementById("commitBtn").style.display = "block";
+  document.getElementById("commitBtn").disabled = false; 
+  document.getElementById("commitBtn").classList.remove("btn-clicked");
+  document.getElementById("result").innerHTML = ""; 
+  document.getElementById("ratingBox").style.display = "none";
+  document.getElementById("ratingLockBtn").classList.remove("btn-clicked");
+  document.getElementById("btnExtend").style.display = "none";
+}
+
+window.submitAnswer = () => { sounds.commit(); const v = document.getElementById("answerInput").value.trim(); if(!v) return; myAnswer = v; document.getElementById("commitBtn").disabled = true; document.getElementById("commitBtn").classList.add("btn-clicked"); document.getElementById("answerInput").disabled = true; set(ref(database, `sessions/${sessionKey}/answers/${currentIndex}/${userId}`), v); };
+
+document.getElementById("answerInput").oninput = (e) => { set(ref(database, `sessions/${sessionKey}/ghost/${userId}`), e.target.value.length); };
+
+function revealAnswers(map) {
+  sounds.reveal(); const pid = Object.keys(map).find(id => id !== userId);
+  document.getElementById("result").innerHTML = `<div class="revealGrid"><div class="answerBox"><div style="font-size:0.5rem; color:#ff7ad9; margin-bottom:5px;">YOU</div>${myAnswer}</div><div class="answerBox"><div style="font-size:0.5rem; color:#ff7ad9; margin-bottom:5px;">${partnerName||"PARTNER"}</div>${map[pid]}</div></div>`;
+  document.getElementById("ratingBox").style.display = "block";
+}
+
+window.submitRating = async () => {
+  if(hasAdvanced) return; sounds.click(); const r = parseInt(document.getElementById("ratingSlider").value); 
+  document.getElementById("ratingLockBtn").classList.add("btn-clicked");
+  await set(ref(database, `sessions/${sessionKey}/ratings/${currentIndex}/${userId}`), r);
+  
+  const snap = await get(ref(database, `sessions/${sessionKey}/ratings/${currentIndex}`));
+  const ratings = snap.val();
+  if(ratings && Object.keys(ratings).length === 2) { 
+    hasAdvanced = true; 
+    const vals = Object.values(ratings); 
+    totalSyncPoints += (vals[0] + vals[1])/2; answered++; 
+    document.getElementById("compGauge").innerText = `SYNC: ${Math.round(((totalSyncPoints/answered)/10)*100)}%`; 
+    setTimeout(() => advance(currentIndex), 1500); 
+  }
+};
+
+async function advance(idx) {
+  const progRef = ref(database, `sessions/${sessionKey}/progress`); 
+  const snap = await get(progRef);
+  if(snap.val() === idx) { 
+    await remove(ref(database, `sessions/${sessionKey}/ghost`)); 
+    await set(progRef, idx + 1); 
+  }
+}
+
+window.requestStop = () => { sounds.click(); set(ref(database, `sessions/${sessionKey}/stopRequest/${userId}`), true); document.getElementById("btnStop").classList.add("active"); document.getElementById("btnStop").innerText = "STOP (1/2)"; };
+window.requestExtend = () => { sounds.click(); set(ref(database, `sessions/${sessionKey}/extendRequest/${userId}`), true); document.getElementById("btnExtend").classList.add("active"); document.getElementById("btnExtend").innerText = "WAITING..."; };
+
+function handleGameEndOptions() {
+  document.getElementById("question").innerText = "SYNC COMPLETE. EXTEND LINK?";
+  document.getElementById("answerInput").style.display = "none";
+  document.getElementById("commitBtn").style.display = "none";
+  document.getElementById("btnExtend").style.display = "block";
+}
+
+async function extendGame() {
+  const newLimit = Math.min(gameLimit + 5, 50);
+  await set(ref(database, `sessions/${sessionKey}/limit`), newLimit);
+  await remove(ref(database, `sessions/${sessionKey}/extendRequest`));
+  document.getElementById("btnExtend").classList.remove("active");
+  document.getElementById("btnExtend").innerText = "EXTEND +5";
+  loadQuestion();
+}
+
+function finishGame() {
+  sounds.score(); document.getElementById("gameSection").style.display = "none"; document.getElementById("finalScreen").style.display = "flex";
+  const score = Math.round((totalSyncPoints / (answered * 10)) * 100);
+  document.getElementById("finalResult").innerHTML = `<div id="captureArea" style="text-align:center; padding:20px;"><div style="font-size: 4.5rem; color: #ff7ad9; font-weight: 900; text-shadow: 0 0 30px #ff7ad9;">${score}%</div><div style="font-size: 1.2rem; color: #ffd1f0; letter-spacing: 5px;">SYNC COMPLETE</div></div><button class="btn-pill" onclick="saveReport()">📸 SAVE REPORT</button><button class="btn-pill" onclick="location.reload()" style="opacity:0.6;">REBOOT</button>`;
+}
+
+window.saveReport = () => { html2canvas(document.getElementById("captureArea"), { backgroundColor: '#050008' }).then(c => { const a = document.createElement("a"); a.download="Sync-Soul.png"; a.href=c.toDataURL(); a.click(); }); };
+</script>
+</head>
+<body>
+<div id="starField" class="star-field"></div>
+<div id="intro"><div class="scene"><div class="person left-p" id="p1"><div class="head"><div class="eye left-eye"></div><div class="eye right-eye"></div></div><div class="body-p"></div></div><div class="person right-p" id="p2"><div class="head"><div class="eye left-eye"></div><div class="eye right-eye"></div></div><div class="body-p" style="background:#6fa8ff;"></div></div><div class="heart-intro" id="heartIntro">❤</div></div></div>
+
+<div class="container">
+  <h1>SYNC SOUL</h1>
+  <div id="handshakeSection" class="card">
+    <div class="gauge-container"><div style="width:100%; height:100%; background:#ff7ad9; border-radius:40px 40px 0 0;"></div></div>
+    <input type="text" id="nameInput" placeholder="ENTER YOUR NAME">
+    <button class="btn-pill" onclick="generateKey()">CREATE CODE</button>
+    <p id="generatedKey" class="status" style="font-weight:bold;"></p>
+    <input type="text" id="enterKey" placeholder="ENTER CODE">
+    <button class="btn-pill" id="btnConnect" onclick="joinSession()">CONNECT</button>
+  </div>
+
+  <div id="gameSection" class="card" style="display:none;">
+    <div class="gauge-container"><div id="progressFill"></div></div>
+    <div id="metaInfo"></div>
+    <div id="compGauge">SYNC: 0%</div>
+    
+    <div class="question" id="question"></div>
+    <textarea id="answerInput" placeholder="Enter truth..."></textarea>
+    <p id="ghostStatus" class="status"></p>
+    <button id="commitBtn" class="btn-pill" onclick="submitAnswer()">COMMIT</button>
+    <div id="result"></div>
+
+    <div id="ratingBox" style="display:none;">
+      <input type="range" min="1" max="10" value="5" id="ratingSlider" oninput="document.getElementById('ratingVal').innerText=this.value">
+      <div id="ratingVal" style="text-align:center; font-weight:bold; font-size:1.1rem; margin-bottom:5px;">5</div>
+      <button id="ratingLockBtn" class="btn-pill" onclick="submitRating()">LOCK ASSESSMENT</button>
+    </div>
+
+    <div class="mutual-controls">
+        <button class="btn-pill btn-small" id="btnExtend" style="display:none;" onclick="requestExtend()">EXTEND +5</button>
+        <button class="btn-pill btn-small" id="btnStop" onclick="requestStop()">STOP</button>
+    </div>
+  </div>
+
+  <div id="finalScreen" class="card" style="display:none; text-align:center; justify-content:center;">
+    <div id="finalResult" style="width:100%"></div>
+  </div>
+</div>
+</body>
+</html>
