@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sync Soul — Deep Connection Protocol</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    min-height:100vh; font-family: "Courier New", monospace;
+    background: radial-gradient(circle at top, #3a004f, #120016 70%);
+    color:#eae6ff; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .card{
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18);
+    border-radius:20px; padding:30px; width:100%; max-width:600px;
+    box-shadow:0 25px 60px rgba(0,0,0,0.45); backdrop-filter: blur(12px);
+    position: relative;
+  }
+  .progress-container { width: 100%; height: 6px; background: rgba(255,255,255,0.1); position: absolute; top: 0; left: 0; }
+  #progressBar { width: 0%; height: 100%; background: #ff7ad9; transition: width 0.4s; }
+  
+  h1{text-align:center; color:#ff7ad9; margin-bottom:10px; font-size:1.8rem; text-transform: uppercase; letter-spacing: 2px;}
+  h2{text-align:center; color:#ffb3e6; margin-bottom:20px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px; font-weight: normal;}
+  
+  .system-note { background: rgba(255,122,217,0.1); padding: 12px; border-left: 3px solid #ff7ad9; font-size: 0.8rem; margin-bottom: 20px; color: #ffb3e6; line-height: 1.4; }
+  
+  label { display: block; font-size: 0.75rem; color: #ff9ae6; margin-top: 15px; margin-bottom: 8px; text-transform: uppercase;}
+  
+  select, input {
+    width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #ff7ad933;
+    background: #000000; color: #ffffff; font-family: inherit; margin-bottom: 12px;
+    font-size: 1rem; outline: none;
+  }
+  
+  button {
+    width: 100%; padding: 16px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg,#ff4fcf,#ff9ae6); color: #1a001f; 
+    font-weight: bold; cursor: pointer; transition: 0.3s;
+  }
+  button:disabled { background: #444; color: #888; cursor: not-allowed; filter: grayscale(1); transform: none; }
+  button:hover { filter: brightness(1.1); transform: scale(1.01); }
+  
+  .status { text-align: center; font-size: 0.9rem; color: #ffd1f0; margin-top: 10px; }
+  .result-box { background: rgba(255,122,217,0.1); padding: 18px; border-radius: 10px; margin: 15px 0; display: none; border: 1px solid #ff7ad955;}
+  .score-val { font-size: 4rem; font-weight: bold; color: #ff7ad9; display: block; margin: 10px 0; text-shadow: 0 0 20px #ff7ad9; }
+  
+  .pact-text { font-style: italic; color: #ffd1f0; margin-bottom: 20px; text-align: center; line-height: 1.6; }
+  .divider { border:0; border-top:1px solid rgba(255,255,255,0.1); margin:25px 0; position: relative;}
+  .divider span { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #1a0025; padding: 0 10px; font-size: 0.7rem; color: #ff9ae6;}
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get, remove, push, update } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCdRj_aM3OmmeuIvzuyAzMU-UuLOlCMmV4",
+  authDomain:"web-a8d3b.firebaseapp.com",
+  databaseURL:"https://web-a8d3b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"web-a8d3b",
+  appId:"1:176484629031:web:4c6227880e07a4d3496c02"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const LEVELS = {
+  1: ["What is the most useless useless talent you possess?", "If you were a ghost, who is the first person you are minorly inconveniencing?", "Which fruit is the biggest try-hard?", "If animals could talk, which one would be the rudest?", "If you were arrested with no explanation, what would your friends assume you did?", "What is the most ridiculous thing you believed as a child?", "How many chickens would it take to actually kill a lion?", "What is the weirdest thing you’ve done while your brain was on autopilot?", "If you had to be The Mascot for a specific vegetable, which one are you representing?", "What is the most illegal feeling thing that is actually perfectly legal?", "Always smell like old library books or freshly baked bread?", "Hop like a frog or crawl like a crab everywhere?", "If you could replace your hands with anything else, what would be the most practical?", "What is the most mid-tier snack that you will still eat an entire bag of?", "If you had to rename yourself after a spice or a herb, what would it be?", "If you were a kitchen appliance, which one would have the most attitude?", "Which mythical creature would be a nightmare to have as a pet?", "What is the best bad movie you’ve ever seen?", "If you could only use one condiment for life, what is it?", "What is the weirdest food combination that you genuinely enjoy?"],
+  2: ["Life of the party or deep conversation in a quiet corner?", "Minute-by-minute itinerary or just land and see?", "Slow silent coffee or high-energy workout?", "Logical solution or someone to sit in the mess with you?", "Do you need the bed made every morning?", "Address public disagreements with a look or wait until home?", "What old person habit do you find comforting?", "Crisis: calm General or empathetic soul?", "Home: sanctuary for resting or hub for entertaining?", "Outsource one adult responsibility forever?", "On time: ten minutes early or five minutes late okay?", "Big secret: carry it to the grave or tell one person?", "Guilty pleasure you are not that guilty about?", "Movies: deep thought or turn brain off?", "Perfectly organized house or lived-in space?", "Quiet evening: different books or shared show?", "Save for a rainy day or spender?", "Real self on social media vs what I see?", "Friendship: what makes you feel connected?", "Master one household skill tomorrow?"],
+  3: ["What is your meaning of love?", "Is vulnerability strength or weakness?", "Everything happens for a reason?", "Biggest lesson from past heartbreak?", "Do you believe in soulmates?", "Childhood effects on your reactions today?", "Exciting life or peaceful one?", "Can people truly change?", "What do you want to be remembered for?", "Kind liar or brutally honest?", "Easy or difficult to say sorry first?", "Honesty in a relationship importance?", "Part of personality you hide?", "Love at first sight?", "Loyalty: never leaving or hard truth?", "Bravest thing you've done?", "Family importance?", "Living for self or others?", "One mistake forgiven?", "Fate or free will?"],
+  4: ["How do you handle stress?", "Are our fights healthy or destructive?", "Improve how we argue?", "Talk it out or cool off first?", "Effective way for me to apologize?", "Biggest trigger during argument?", "Receive constructive feedback?", "Safe sharing messy emotions?", "Solution or just a hug?", "Habit making you feel unsupported?", "Tell you are overwhelmed before you snap?", "Resolve issues or stop talking?", "Fair fighting definition?", "Truly listening to your side?", "Get back to good place after fight?", "De-escalates your anger?", "Communicate well during crisis?", "What could I do better?", "What could you do better?", "What could we do better?"],
+  5: ["What is your biggest fear?", "Most treasured memory?", "Change upbringing?", "Greatest accomplishment?", "Lonely even if I’m there?", "Quiet in a crowd thoughts?", "Reminds you I see the real you?", "Dreamed of doing - why haven't you?", "Quality/Ability tomorrow?", "Know about you right now?", "Struggle to love most?", "Last time you cried?", "Insecure in relationship?", "Perform or be perfect for me?", "Secret dream too big?", "Handle inadequacy?", "Most painful lesson?", "Home: place or person?", "Forgive yourself for?", "Need to hear when doubting?"],
+  6: ["Future with me in it?", "Deal-breakers?", "Dream achieved in 10 years?", "What people say about us at the end?", "Success as a couple?", "Goal together this year?", "Old on a porch talk?", "Protect private time?", "Morning team ritual?", "Living 5 years from today?", "Work/Family balance future?", "Legacy for next generation?", "Non-negotiable for home?", "Financial decisions together?", "Build new life anywhere?", "Passion together as we age?", "Never stop dating?", "Successful retirement?", "Adventure before too old?", "Celebrate finish this game?"]
+};
+
+const NOTES = {
+  1: "SYSTEM_REBOOT: Logical brain bypassed. Chaos Mode engaged.",
+  2: "HARDWARE_SYNC: Switching to Lifestyle Observation.",
+  3: "ENCRYPTION_CHECK: Scanning Soul Compatibility.",
+  4: "AUTO_REPAIR_INIT: Conflict resolution protocol active.",
+  5: "SOURCE_CODE: Vulnerability detected. Handle with empathy.",
+  6: "VERSION_2.0_BETA: Synchronizing future visions.",
+  "all": "GLOBAL_SYNC: Multi-level soul sector scan."
+};
+
+let sessionKey, userId = Math.random().toString(36).substring(2,8);
+let myName, partnerName = "Partner", isMaster = false, totalTarget = 5;
+let activeQuestions = [];
+let profiles = {};
+let gameHistory = [];
+
+const hide = id => document.getElementById(id).style.display = 'none';
+const show = id => document.getElementById(id).style.display = 'block';
+const txt = (id, text) => document.getElementById(id).innerText = text;
+
+document.getElementById('countSelect').addEventListener('change', (e) => {
+  document.getElementById('customCountWrap').style.display = e.target.value === "custom" ? "block" : "none";
+});
+
+window.bindPact = async () => {
+  const btn = document.getElementById('pactBtn');
+  btn.disabled = true;
+  btn.innerText = "PACT COMMITTED...";
+  await set(ref(db, `sessions/${sessionKey}/handshake/${userId}`), true);
+};
+
+window.createRoom = async () => {
+  myName = document.getElementById("userName").value.trim();
+  let lvl = document.getElementById("levelSelect").value;
+  let countType = document.getElementById("countSelect").value;
+  let total = countType === "custom" ? parseInt(document.getElementById("customCount").value) : parseInt(countType);
+
+  if(!myName) return alert("Identify yourself first.");
+  isMaster = true;
+  sessionKey = "SOUL-" + Math.floor(1000 + Math.random()*9000);
+  
+  await set(ref(db, `sessions/${sessionKey}/config`), { lvl: lvl, total: total });
+  await set(ref(db, `sessions/${sessionKey}/profiles/${userId}`), myName);
+  
+  hide('setup'); show('handshake');
+  txt('keyDisplay', "ROOM KEY: " + sessionKey);
+  listenForStart();
+};
+
+window.joinRoom = async () => {
+  myName = document.getElementById("userName").value.trim();
+  sessionKey = document.getElementById("enterKey").value.trim().toUpperCase();
+  if(!myName || !sessionKey) return alert("Name and Key required.");
+  const configSnap = await get(ref(db, `sessions/${sessionKey}/config`));
+  if(!configSnap.exists()) return alert("Room not found.");
+  await set(ref(db, `sessions/${sessionKey}/profiles/${userId}`), myName);
+  hide('setup'); show('handshake');
+  txt('keyDisplay', "CONNECTED: " + sessionKey);
+  listenForStart();
+};
+
+function listenForStart() {
+  onValue(ref(db, `sessions/${sessionKey}/profiles`), p => {
+    if(p.exists() && Object.keys(p.val()).length === 2) {
+      txt('hStatus', "PARTNER DETECTED: AWAITING PACT...");
+    } else {
+      txt('hStatus', "Awaiting the other half...");
+    }
+  });
+
+  onValue(ref(db, `sessions/${sessionKey}/handshake`), s => {
+    if(s.exists() && Object.keys(s.val()).length === 2) {
+      txt('hStatus', "SYNCING PROTOCOLS...");
+      setTimeout(initializeGame, 1200);
+    }
+  });
+}
+
+async function initializeGame() {
+  const snap = await get(ref(db, `sessions/${sessionKey}`));
+  const data = snap.val();
+  const config = data.config;
+  profiles = data.profiles;
+  partnerName = profiles[Object.keys(profiles).find(id => id !== userId)];
+
+  if(config.lvl === "all") {
+    let allQ = [];
+    let perLevel = Math.ceil(config.total/6);
+    for(let i=1; i<=6; i++) allQ = allQ.concat(LEVELS[i].slice(0, perLevel));
+    activeQuestions = allQ.slice(0, config.total);
+  } else {
+    activeQuestions = LEVELS[config.lvl].slice(0, config.total);
+  }
+  
+  hide('handshake'); show('game');
+  txt('lvlTitle', config.lvl === "all" ? "GLOBAL SYNC" : `LEVEL ${config.lvl}`);
+  txt('lvlNote', NOTES[config.lvl]);
+  runEngine();
+}
+
+function runEngine() {
+  onValue(ref(db, `sessions/${sessionKey}/pos`), snap => {
+    const idx = snap.val() || 0;
+    if(idx >= activeQuestions.length) return finishGame();
+    txt('question', activeQuestions[idx]);
+    document.getElementById('progressBar').style.width = (idx / activeQuestions.length) * 100 + "%";
+    resetRoundUI();
+  });
+
+  onValue(ref(db, `sessions/${sessionKey}/answers`), snap => {
+    const ans = snap.val();
+    if(ans && Object.keys(ans).length === 2) {
+      const ids = Object.keys(ans);
+      txt('resA', `${profiles[ids[0]]}: ${ans[ids[0]]}`);
+      txt('resB', `${profiles[ids[1]]}: ${ans[ids[1]]}`);
+      show('resultBox'); show('ratingArea');
+    }
+  });
+
+  onValue(ref(db, `sessions/${sessionKey}/ratings`), snap => {
+    if(snap.exists() && Object.keys(snap.val()).length === 2) {
+        captureHistory();
+        if(isMaster) {
+            setTimeout(async () => {
+              const pos = (await get(ref(db, `sessions/${sessionKey}/pos`))).val() || 0;
+              const rates = (await get(ref(db, `sessions/${sessionKey}/ratings`))).val();
+              Object.values(rates).forEach(v => push(ref(db, `sessions/${sessionKey}/archive`), parseInt(v)));
+              await update(ref(db, `sessions/${sessionKey}`), { answers: null, ratings: null, pos: pos + 1 });
+            }, 1500);
+        }
+    }
+  });
+}
+
+async function captureHistory() {
+    const snap = await get(ref(db, `sessions/${sessionKey}`));
+    const data = snap.val();
+    if(data.answers && data.ratings) {
+        const idx = data.pos || 0;
+        const q = activeQuestions[idx];
+        const ids = Object.keys(data.answers);
+        const entry = {
+            question: q,
+            ansA: { name: profiles[ids[0]], text: data.answers[ids[0]] },
+            ansB: { name: profiles[ids[1]], text: data.answers[ids[1]] },
+            rating: Object.values(data.ratings).reduce((a,b)=>parseInt(a)+parseInt(b), 0) / 2
+        };
+        if(!gameHistory.find(h => h.question === q)) gameHistory.push(entry);
+    }
+}
+
+window.submitAns = () => {
+  const v = document.getElementById('ansIn').value.trim();
+  if(!v) return;
+  set(ref(db, `sessions/${sessionKey}/answers/${userId}`), v);
+  document.getElementById('ansIn').disabled = true;
+};
+
+window.submitRate = () => {
+  set(ref(db, `sessions/${sessionKey}/ratings/${userId}`), document.getElementById('rateRange').value);
+  hide('ratingArea');
+};
+
+function resetRoundUI() {
+  document.getElementById('ansIn').value = ""; document.getElementById('ansIn').disabled = false;
+  hide('resultBox'); hide('ratingArea');
+}
+
+async function finishGame() {
+  hide('game'); show('final');
+  const snap = await get(ref(db, `sessions/${sessionKey}/archive`));
+  const data = snap.val();
+  if(data) {
+    const scores = Object.values(data);
+    const avg = Math.round((scores.reduce((a,b)=>a+b, 0) / scores.length) * 10);
+    txt('finalScore', avg + "%");
+    txt('finalNames', `${myName} + ${partnerName}`);
+  }
+}
+
+window.downloadPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    let y = 20;
+
+    doc.setFillColor(58, 0, 79);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 122, 217);
+    doc.setFontSize(22);
+    doc.text("SYNC SOUL REPORT", 105, 20, { align: "center" });
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Compatibility Result: ${document.getElementById('finalScore').innerText}`, 105, 30, { align: "center" });
+
+    y = 50;
+    gameHistory.forEach((item, i) => {
+        if(y > 270) { doc.addPage(); y = 20; }
+        doc.setTextColor(58, 0, 79);
+        doc.setFont("courier", "bold");
+        doc.text(`${i+1}. ${item.question}`, 15, y);
+        y += 8;
+        doc.setFont("courier", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${item.ansA.name}: ${item.ansA.text}`, 20, y);
+        y += 7;
+        doc.text(`${item.ansB.name}: ${item.ansB.text}`, 20, y);
+        y += 7;
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Sync Rating: ${item.rating}/10`, 20, y);
+        y += 15;
+    });
+
+    doc.save(`Sync-Soul-Report.pdf`);
+};
+</script>
+</head>
+<body>
+
+<div class="card" id="setup">
+  <h1>Sync Soul</h1>
+  <h2>Connection Protocol</h2>
+  
+  <label>Your Name</label>
+  <input type="text" id="userName" placeholder="Enter identity...">
+  
+  <div id="creationZone">
+    <label>Depth Level</label>
+    <select id="levelSelect">
+      <option value="all">ALL LEVELS (Mixed)</option>
+      <option value="1">Lvl 1: Chaos Mode</option>
+      <option value="2">Lvl 2: Daily Rhythms</option>
+      <option value="3">Lvl 3: Social Sync</option>
+      <option value="4">Lvl 4: The Debugger</option>
+      <option value="5">Lvl 5: Source Code</option>
+      <option value="6">Lvl 6: Future Build</option>
+    </select>
+
+    <label>Questions</label>
+    <select id="countSelect">
+      <option value="5">5 Questions</option>
+      <option value="10">10 Questions</option>
+      <option value="20">20 Questions</option>
+      <option value="custom">-- Custom --</option>
+    </select>
+    
+    <div id="customCountWrap" style="display:none;">
+      <input type="number" id="customCount" placeholder="How many?">
+    </div>
+
+    <button onclick="createRoom()">CREATE SYNC ROOM</button>
+  </div>
+
+  <div class="divider"><span>OR</span></div>
+  
+  <label>Join Existing Soul</label>
+  <input type="text" id="enterKey" placeholder="Enter Soul Key">
+  <button onclick="joinRoom()" style="background:none; border: 1px solid #ff7ad9; color: #ff7ad9;">JOIN PARTNER</button>
+</div>
+
+<div class="card" id="handshake" style="display:none;">
+  <h1>The Soul Pact</h1>
+  <div class="system-note">WARNING: You are entering a zone of total transparency. All social masks must be discarded.</div>
+  
+  <p class="pact-text">
+    "By proceeding, I surrender my defenses. I promise to speak not from the ego, but from the core. I acknowledge that truth is the only currency accepted here, and vulnerability is my only protection."
+  </p>
+
+  <button id="pactBtn" onclick="bindPact()">I BIND MY SOUL TO TRUTH</button>
+  <p id="keyDisplay" style="text-align:center; font-size:1rem; margin-top:15px; color:#ff7ad9; font-weight: bold;"></p>
+  <p id="hStatus" class="status">Awaiting the other half...</p>
+</div>
+
+<div class="card" id="game" style="display:none;">
+  <div class="progress-container"><div id="progressBar"></div></div>
+  <h2 id="lvlTitle"></h2>
+  <div id="lvlNote" class="system-note"></div>
+  <p id="question" style="text-align:center; margin-bottom:20px; min-height:3em;"></p>
+  <input type="text" id="ansIn" placeholder="Type answer...">
+  <button onclick="submitAns()">COMMIT</button>
+  <div id="resultBox" class="result-box"><p id="resA"></p><p id="resB"></p></div>
+  <div id="ratingArea" style="display:none; text-align: center;">
+    <label>Sync Level</label>
+    <input type="range" id="rateRange" min="1" max="10" value="5">
+    <button onclick="submitRate()">NEXT</button>
+  </div>
+</div>
+
+<div class="card" id="final" style="display:none; text-align: center;">
+  <h1>Sync Analysis</h1>
+  <p id="finalNames" style="margin-top: 10px; color: #ffb3e6;"></p>
+  <span id="finalScore" class="score-val">0%</span>
+  <button onclick="downloadPDF()" style="margin-bottom: 10px;">DOWNLOAD SYNC REPORT (PDF)</button>
+  <button onclick="location.reload()" style="background:none; color:#ff7ad9; border:1px solid #ff7ad9;">NEW SYNC</button>
+</div>
+
+</body>
+</html>
